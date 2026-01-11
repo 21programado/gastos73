@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Control de Facturas</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1764d6">
+
+<style>
+:root{
+  --bg:#fafafa; --card:#fff; --muted:#6b6b6b; --accent:#1764d6;
+  --danger:#d9534f; --ok:#28a745; --border:#e6e6e6;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto;
+  background:var(--bg); color:#111;
+}
+header{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px; border-bottom:1px solid var(--border);
+  position:sticky; top:0; background:#fff; z-index:10;
+}
+.btn{border:1px solid var(--border); background:#fff; padding:8px 10px; border-radius:8px}
+.btn.flat{border:none}
+.btn.danger{background:var(--danger); color:#fff; border:none}
+
+main{padding:12px}
+.list{display:flex; flex-direction:column; gap:10px}
+.card{
+  background:#fff; border:1px solid var(--border); border-radius:10px;
+  padding:10px; display:flex; justify-content:space-between; gap:10px;
+}
+.left{display:flex; gap:10px}
+.tick{
+  width:40px; height:40px; border-radius:8px; border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+}
+.tick.payed{background:var(--ok); color:#fff; border:none}
+.title{font-weight:600}
+.subtitle{font-size:13px; color:var(--muted)}
+.menu{
+  position:relative;
+}
+.menu button{
+  border:none; background:transparent; font-size:20px; cursor:pointer;
+}
+.menu-content{
+  position:absolute; right:0; top:24px;
+  background:#fff; border:1px solid var(--border);
+  border-radius:8px; display:none;
+}
+.menu-content button{
+  display:block; padding:8px 12px; width:100%; border:none; background:none;
+  text-align:left;
+}
+.menu-content button:hover{background:#eee}
+
+.overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.4);
+  display:none; align-items:center; justify-content:center;
+}
+.overlay.show{display:flex}
+.modal{
+  background:#fff; padding:14px; border-radius:12px; width:94%; max-width:480px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <strong id="currentMonthLabel"></strong>
+  <button class="btn" id="addBtn">+</button>
+</header>
+
+<main>
+  <div class="list" id="itemsList"></div>
+</main>
+
+<div class="overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle"></h3>
+    <input id="inputName" placeholder="Nombre" style="width:100%;margin-top:8px">
+    <div style="margin-top:10px;text-align:right">
+      <button class="btn" id="cancelModal">Cancelar</button>
+      <button class="btn" id="saveModal">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =======================
+   PWA
+======================= */
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js");
+}
+
+/* =======================
+   Estado
+======================= */
+const $ = s => document.querySelector(s);
+let state = JSON.parse(localStorage.getItem("facturas")||"{}");
+state.items ||= [];
+state.month ||= new Date().toISOString().slice(0,7);
+let editingId = null;
+let dirty = false;
+
+function save(){ localStorage.setItem("facturas",JSON.stringify(state)); }
+
+function render(){
+  $("#currentMonthLabel").textContent = state.month;
+  const list = $("#itemsList");
+  list.innerHTML="";
+  state.items.forEach(it=>{
+    const card=document.createElement("div");
+    card.className="card";
+    const tick=document.createElement("div");
+    tick.className="tick"+(it.payed?" payed":"");
+    tick.textContent=it.payed?"✓":"";
+    tick.onclick=()=>{it.payed=!it.payed;save();render()};
+    const meta=document.createElement("div");
+    meta.innerHTML=`<div class="title">${it.name}</div>`;
+    meta.onclick=()=>openEdit(it.id);
+    const menu=document.createElement("div");
+    menu.className="menu";
+    menu.innerHTML=`
+      <button>⋮</button>
+      <div class="menu-content">
+        <button>Eliminar</button>
+      </div>`;
+    menu.querySelector("button").onclick=e=>{
+      e.stopPropagation();
+      menu.querySelector(".menu-content").style.display="block";
+    };
+    menu.querySelector(".menu-content button").onclick=()=>{
+      if(confirm("¿Eliminar esta factura?")){
+        state.items=state.items.filter(x=>x.id!==it.id);
+        save();render();
+      }
+    };
+    card.append(tick,meta,menu);
+    list.appendChild(card);
+  });
+}
+
+function openAdd(){
+  editingId=null; dirty=false;
+  $("#modalTitle").textContent="Nueva factura";
+  $("#inputName").value="";
+  $("#modalOverlay").classList.add("show");
+}
+
+function openEdit(id){
+  const it=state.items.find(x=>x.id===id);
+  if(!it)return;
+  editingId=id; dirty=false;
+  $("#modalTitle").textContent="Editar factura";
+  $("#inputName").value=it.name;
+  $("#modalOverlay").classList.add("show");
+}
+
+$("#inputName").oninput=()=>dirty=true;
+
+$("#cancelModal").onclick=()=>{
+  if(dirty && !confirm("Hay cambios sin guardar. ¿Cerrar igual?"))return;
+  $("#modalOverlay").classList.remove("show");
+};
+
+$("#saveModal").onclick=()=>{
+  const name=$("#inputName").value.trim();
+  if(!name)return alert("Falta nombre");
+  if(editingId){
+    state.items.find(x=>x.id===editingId).name=name;
+  }else{
+    state.items.push({id:crypto.randomUUID(),name,payed:false});
+  }
+  save(); $("#modalOverlay").classList.remove("show"); render();
+};
+
+$("#addBtn").onclick=openAdd;
+
+render();
+</script>
+</body>
+</html>
