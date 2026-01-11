@@ -4,6 +4,10 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Control de Facturas</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1764d6">
+
 <style>
   /* ====== Reset mínimo y tipografía ====== */
   :root{
@@ -14,8 +18,8 @@
   html,body{height:100%}
   body{
     margin:0; font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    background:var(--bg); color:#111; -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
+    background:var(--bg); color:#111;
+    -webkit-font-smoothing:antialiased;
   }
 
   /* ====== Layout ====== */
@@ -25,9 +29,10 @@
     border-bottom:1px solid var(--border);
     position:sticky; top:0; z-index:10;
   }
-  header h1{margin:0; font-size:18px; letter-spacing:0.2px}
+  header h1{margin:0; font-size:18px}
   .controls{display:flex; gap:8px; align-items:center}
   .monthWrap{display:flex; gap:8px; align-items:center; font-weight:600}
+
   .btn{
     border:1px solid var(--border); background:var(--card); padding:8px 10px; border-radius:8px;
     font-size:14px; color:inherit; cursor:pointer;
@@ -35,7 +40,8 @@
   .btn.secondary{background:transparent}
   .btn.danger{background:var(--danger); color:#fff; border:none}
   .btn.flat{border:none; background:transparent; padding:6px}
-  main{padding:12px;}
+
+  main{padding:12px}
 
   /* ====== Add button floating ====== */
   .fab{
@@ -50,6 +56,7 @@
     background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px;
     display:flex; gap:10px; align-items:center; justify-content:space-between;
   }
+
   .left{display:flex; gap:10px; align-items:flex-start; flex:1}
   .meta{display:flex; flex-direction:column}
   .title{font-weight:600; font-size:15px}
@@ -65,76 +72,140 @@
   .tick.payed{background:var(--ok); color:#fff; border:none}
 
   /* labels */
-  .tag{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid var(--border); background:transparent}
+  .tag{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid var(--border);}
   .tag.cuotas{background:rgba(23,100,214,0.06); border-color:rgba(23,100,214,0.12); color:var(--accent)}
   .tag.fijo{background:rgba(0,0,0,0.03)}
 
-  /* form modal */
-  .overlay{position:fixed; inset:0; background:rgba(0,0,0,0.45); display:none; align-items:center; justify-content:center; z-index:50}
+  /* Overlay genérico */
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.45);
+    display:none; align-items:center; justify-content:center;
+    z-index:50;
+  }
   .overlay.show{display:flex}
-  .modal{width:94%; max-width:520px; background:var(--card); border-radius:12px; padding:14px; box-shadow:0 18px 40px rgba(0,0,0,0.12)}
+
+  /* Modal genérico */
+  .modal{
+    width:94%; max-width:520px; max-height:85vh;
+    overflow:auto;
+    background:var(--card); border-radius:12px;
+    padding:14px;
+    box-shadow:0 18px 40px rgba(0,0,0,0.12)
+  }
+
   .form-row{display:flex; gap:8px; margin-top:8px}
   label{font-size:13px; color:var(--muted)}
   input[type="text"], input[type="number"], select{
-    width:100%; padding:10px; border-radius:8px; border:1px solid var(--border); background:transparent;
+    width:100%; padding:10px; border-radius:8px;
+    border:1px solid var(--border); background:transparent;
     font-size:14px;
   }
-  .radioRow{display:flex; gap:8px; margin-top:8px}
-  .muted{color:var(--muted); font-size:13px}
 
-  /* responsive tweaks */
-  @media (min-width:640px){
-    main{max-width:720px; margin:0 auto}
-    .fab{right:28px; bottom:28px}
+  /* ====== Modal impresión ====== */
+  #printModal .modal{
+    max-width:800px;
+    padding:20px;
   }
 
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1764d6">
+  #printTable{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+  }
+  #printTable th, #printTable td{
+    border:1px solid #ccc;
+    padding:6px 8px;
+    font-size:14px;
+  }
+  #printTable th{
+    background:#eee;
+    font-weight:600;
+  }
+
+  /* ====== Estilos exclusivos para impresión ====== */
+  @media print {
+    body * {
+      visibility: hidden !important;
+    }
+    #printModal, #printModal * {
+      visibility: visible !important;
+    }
+    #printModal {
+      position: fixed;
+      inset: 0;
+      margin: 0;
+      padding: 0;
+      background: white;
+    }
+    #closePrintModal, #execPrintBtn {
+      display:none;
+    }
+  }
+
+.delete-btn {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.delete-btn:hover {
+  background: #c64541;
+}
 
 </style>
+
 </head>
 <body>
 
 <header>
- 
   <div class="controls">
     <div class="monthWrap">
-      <button class="btn flat" id="prevMonth" title="Mes previo">&lt;</button>
+      <button class="btn flat" id="prevMonth">&lt;</button>
       <div id="currentMonthLabel">— —</div>
-      <button class="btn flat" id="nextMonth" title="Mes siguiente">&gt;</button>
+      <button class="btn flat" id="nextMonth">&gt;</button>
     </div>
-    <button class="btn" id="exportBtn" title="Exportar respaldo">Exportar</button>
-    <button class="btn" id="importOpenBtn" title="Importar respaldo">Importar</button>
+
+    <button class="btn" id="exportBtn">Exportar</button>
+    <button class="btn" id="importOpenBtn">Importar</button>
+
+    <!-- ⭐ Nuevo botón -->
+    <button class="btn" id="openPrintView">Imprimir</button>
   </div>
 </header>
 
 <main>
-  <div class="list" id="itemsList">
-    <!-- tarjetas dinámicas -->
-  </div>
+  <div class="list" id="itemsList"></div>
 
   <p class="muted" style="margin-top:14px; font-size:13px">
-    Editar: toca el nombre. Marcar pago: toca la casilla. Límite mensual: solo se muestran gastos activos para el mes seleccionado.
+    Editar: toca el nombre. Marcar pago: toca la casilla.
+    Límite mensual: solo se muestran gastos activos para el mes seleccionado.
   </p>
 </main>
 
-<button class="fab" id="addBtn" title="Agregar gasto">+</button>
+<button class="fab" id="addBtn">+</button>
 
+<!-- ========================= -->
 <!-- Modal: agregar / editar -->
+<!-- ========================= -->
 <div class="overlay" id="modalOverlay">
-  <div class="modal" role="dialog" aria-modal="true">
+  <div class="modal">
     <h3 id="modalTitle">Nueva factura</h3>
 
     <div style="margin-top:8px">
       <label>Nombre</label>
-      <input type="text" id="inputName" placeholder="Ej. Luz, Internet" />
+      <input type="text" id="inputName" />
     </div>
 
     <div class="form-row">
       <div style="flex:1">
         <label>Monto (opcional)</label>
-        <input type="number" id="inputAmount" placeholder="Ej. 1250" min="0" step="0.01" />
+        <input type="number" id="inputAmount" />
       </div>
+
       <div style="width:40%">
         <label>Tipo</label>
         <select id="inputType">
@@ -150,7 +221,9 @@
         <select id="inputStart"></select>
         <select id="inputEnd"></select>
       </div>
-      <div class="muted" style="margin-top:6px;font-size:13px">Seleccioná el mes y año en formato MM/YYYY</div>
+      <div class="muted" style="margin-top:6px;font-size:13px">
+        Seleccioná mes y año (MM/YYYY)
+      </div>
     </div>
 
     <div style="display:flex; gap:8px; margin-top:14px; justify-content:flex-end">
@@ -160,405 +233,377 @@
   </div>
 </div>
 
-<!-- input file oculto para importar -->
-<input type="file" id="importFile" accept="application/json,text/json" style="display:none">
+<!-- ========================= -->
+<!-- ⭐ NUEVO: Modal de impresión -->
+<!-- ========================= -->
+<div class="overlay" id="printModal">
+  <div class="modal">
+    <h3>Vista para imprimir</h3>
+
+    <table id="printTable">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Monto</th>
+          <th>Tipo</th>
+          <th>Inicio</th>
+          <th>Fin</th>
+          <th>Pagos</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div style="text-align:right; margin-top:14px;">
+      <button class="btn secondary" id="closePrintModal">Cerrar</button>
+      <button class="btn" id="execPrintBtn">Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Input archivo oculto -->
+<input type="file" id="importFile" accept="application/json">
 
 <script>
-/* ============================
-   ESTRUCTURA Y UTILIDADES
-   ============================ */
+/* ===========================================================
+   UTILIDADES
+=========================================================== */
 
-const STORAGE_KEY = "gastos_app_v1";
+const $ = s => document.querySelector(s);
 
-function uid(){
-  // id simple y seguro para local: timestamp + random
-  return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
+function formatMonth(date){
+  return date.toLocaleDateString("es-UY", { month:"long", year:"numeric" });
 }
 
-function todayYMD(date = new Date()){
-  const y = date.getFullYear();
-  const m = String(date.getMonth()+1).padStart(2,'0');
-  return `${y}-${m}`; // "2026-01"
+function pad(n){ return n.toString().padStart(2,"0"); }
+
+function monthKey(date){
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}`;
 }
 
-function displayMonthLabel(ym){
-  const [y,m] = ym.split('-').map(Number);
-  const d = new Date(y, m-1, 1);
-  return d.toLocaleString(undefined, {month:'long', year:'numeric'});
+function parseMonthKey(key){
+  const [y,m] = key.split("-").map(Number);
+  return new Date(y, m-1, 1);
 }
 
-/* load & save */
-function loadData(){
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return { items: [] };
-    return JSON.parse(raw);
-  } catch(e){
-    console.error("Error leyendo localStorage:", e);
-    return { items: [] };
+/* ===========================================================
+   ESTADO Y STORAGE
+=========================================================== */
+
+let state = {
+  items: [],       // { id, name, amount, type, start, end, payed: { [month]:boolean } }
+  currentMonth: monthKey(new Date())
+};
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem("facturas-data");
+    if(raw){
+      state = JSON.parse(raw);
+    }
+  }catch(e){}
+}
+
+function saveState(){
+  localStorage.setItem("facturas-data", JSON.stringify(state));
+}
+
+/* ===========================================================
+   RENDER PRINCIPAL
+=========================================================== */
+
+function shouldShowItem(item, month){
+  if(item.type === "fijo") return true;
+  if(item.type === "cuotas"){
+    return month >= item.start && month <= item.end;
   }
-}
-function saveData(data){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
-/* default model
- item = {
-   id: uid(),
-   name: "Luz",
-   amount: 1250, // optional number or null
-   type: "fijo" | "cuotas",
-   start: "2025-12", // only for cuotas
-   end: "2026-05",   // only for cuotas
-   paid: { "2025-12": true, "2026-01": false, ... } // map month->bool
- }
-*/
-
-/* ============================
-   ESTADO DE LA APLICACIÓN
-   ============================ */
-
-let state = loadData(); // { items: [...] }
-if(!state.items) state.items = [];
-
-let currentMonth = todayYMD();
-
-/* ============================
-   RENDERS
-   ============================ */
-
-const itemsList = document.getElementById('itemsList');
-const currentMonthLabel = document.getElementById('currentMonthLabel');
-
-function isActiveThisMonth(item, ym){
-  if(item.type === 'fijo') return true;
-  // cuotas
-  if(!item.start || !item.end) return true;
-  return (item.start <= ym && ym <= item.end);
+  return false;
 }
 
 function render(){
-  currentMonthLabel.textContent = displayMonthLabel(currentMonth);
-  itemsList.innerHTML = '';
-  // show items that are active this month
-  const visible = state.items.filter(it => isActiveThisMonth(it, currentMonth));
-  if(visible.length === 0){
-    const p = document.createElement('div');
-    p.className = 'card';
-    p.innerHTML = '<div class="left"><div class="meta"><div class="title">Sin gastos para este mes</div><div class="subtitle small">Agregá una factura o cambia el mes</div></div></div>';
-    itemsList.appendChild(p);
-    return;
+  $("#currentMonthLabel").textContent = formatMonth(parseMonthKey(state.currentMonth));
+
+  const list = $("#itemsList");
+  list.innerHTML = "";
+
+  state.items
+    .filter(it => shouldShowItem(it, state.currentMonth))
+    .forEach(item => {
+      const el = document.createElement("div");
+      el.className = "card";
+
+      const tick = document.createElement("div");
+      tick.className = "tick " + (item.payed?.[state.currentMonth] ? "payed" : "");
+      tick.textContent = item.payed?.[state.currentMonth] ? "✓" : "";
+      tick.onclick = () => {
+        if(!item.payed) item.payed = {};
+        item.payed[state.currentMonth] = !item.payed[state.currentMonth];
+        saveState(); render();
+      };
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+
+      const title = document.createElement("div");
+      title.className = "title";
+      title.textContent = item.name;
+      title.onclick = () => openEditModal(item.id);
+
+      const subtitle = document.createElement("div");
+      subtitle.className = "subtitle";
+      subtitle.textContent =
+        item.type === "fijo"
+          ? "Fijo"
+          : `Cuotas ${item.start} → ${item.end}`;
+
+      meta.append(title, subtitle);
+
+      const right = document.createElement("div");
+      right.className = "right";
+      right.innerHTML = `
+        ${item.amount ? `<div class="small">$${item.amount}</div>` : ""}
+        <div class="tag ${item.type}">${item.type}</div>
+      `;
+
+// Botón eliminar
+const delBtn = document.createElement("button");
+delBtn.textContent = "Eliminar";
+delBtn.className = "delete-btn";
+
+delBtn.onclick = (e) => {
+  e.stopPropagation();
+  if (confirm("¿Eliminar esta factura?")) {
+    state.items = state.items.filter(x => x.id !== item.id);
+    saveState();
+    render();
   }
+};
 
-  visible.forEach(item => {
-    const paid = !!(item.paid && item.paid[currentMonth]);
-    const card = document.createElement('div');
-    card.className = 'card';
+right.appendChild(delBtn);
 
-    const left = document.createElement('div'); left.className = 'left';
-    // checkbox
-    const tick = document.createElement('div');
-    tick.className = 'tick' + (paid ? ' payed' : '');
-    tick.textContent = paid ? '✓' : '';
-    tick.title = paid ? 'Marcado como pagado' : 'Marcar como pagado';
-    tick.addEventListener('click', () => togglePaid(item.id, currentMonth));
-    left.appendChild(tick);
+      const left = document.createElement("div");
+      left.className = "left";
+      left.append(tick, meta);
 
-    const meta = document.createElement('div'); meta.className = 'meta';
-    const title = document.createElement('div'); title.className = 'title';
-    title.textContent = item.name || "(sin nombre)";
-    // permitir editar al tocar el nombre
-    title.style.cursor = "pointer";
-    title.addEventListener('click', () => openModal(item.id));
-
-    const subtitle = document.createElement('div'); subtitle.className = 'subtitle';
-    const parts = [];
-    if(item.type === 'fijo') parts.push('Fijo mensual');
-    else if(item.type === 'cuotas'){
-      // compute index and total if start/end present
-      if(item.start && item.end){
-        const total = monthsBetween(item.start, item.end) + 1;
-        const index = monthsBetween(item.start, currentMonth) + 1;
-        parts.push(`Cuota ${index}/${total}`);
-      } else parts.push('Cuotas');
-    }
-    if(item.amount != null && item.amount !== '') parts.push(formatCurrency(item.amount));
-    subtitle.textContent = parts.join(' · ');
-    meta.appendChild(title);
-    meta.appendChild(subtitle);
-
-    left.appendChild(meta);
-
-    // right controls
-    const right = document.createElement('div'); right.className = 'right';
-    // edit small
-    const editBtn = document.createElement('button'); editBtn.className='btn flat'; editBtn.textContent='Editar';
-    editBtn.addEventListener('click', ()=>openModal(item.id));
-    // delete
-    const delBtn = document.createElement('button'); delBtn.className='btn flat'; delBtn.textContent='Eliminar';
-    delBtn.style.color = "var(--danger)";
-    delBtn.addEventListener('click', ()=>deleteItem(item.id));
-
-    right.appendChild(editBtn);
-    right.appendChild(delBtn);
-
-    card.appendChild(left);
-    card.appendChild(right);
-
-    itemsList.appendChild(card);
-  });
+      el.append(left, right);
+      list.appendChild(el);
+    });
 }
 
-/* ============================
-   UTIL: formato y meses
-   ============================ */
+/* ===========================================================
+   MESES
+=========================================================== */
 
-function formatCurrency(v){
-  try {
-    const n = Number(v);
-    if(isNaN(n)) return '';
-    // simple format without currency sign; uses locale number formatting
-    return n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-  } catch(e){ return v; }
-}
+$("#prevMonth").onclick = () => {
+  const d = parseMonthKey(state.currentMonth);
+  d.setMonth(d.getMonth() - 1);
+  state.currentMonth = monthKey(d);
+  saveState(); render();
+};
 
-function monthsBetween(startYM, endYM){
-  // both "YYYY-MM"
-  const [ys, ms] = startYM.split('-').map(Number);
-  const [ye, me] = endYM.split('-').map(Number);
-  return (ye - ys) * 12 + (me - ms);
-}
+$("#nextMonth").onclick = () => {
+  const d = parseMonthKey(state.currentMonth);
+  d.setMonth(d.getMonth() + 1);
+  state.currentMonth = monthKey(d);
+  saveState(); render();
+};
 
-function addMonths(ym, delta){
-  const [y,m] = ym.split('-').map(Number);
-  const date = new Date(y, m-1 + delta, 1);
-  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
-}
-
-/* ============================
-   OPERACIONES: toggle, add, edit, delete
-   ============================ */
-
-function togglePaid(id, ym){
-  const it = state.items.find(x=>x.id === id);
-  if(!it) return;
-  it.paid = it.paid || {};
-  it.paid[ym] = !it.paid[ym];
-  saveData(state);
-  render();
-}
-
-function deleteItem(id){
-  if(!confirm("¿Borrar este gasto? Esta acción no puede deshacerse.")) return;
-  state.items = state.items.filter(x=>x.id !== id);
-  saveData(state);
-  render();
-}
-
-/* ============================
-   MODAL: crear / editar
-   ============================ */
-
-const modalOverlay = document.getElementById('modalOverlay');
-const modalTitle = document.getElementById('modalTitle');
-const inputName = document.getElementById('inputName');
-const inputAmount = document.getElementById('inputAmount');
-const inputType = document.getElementById('inputType');
-const cuotasRow = document.getElementById('cuotasRow');
-const inputStart = document.getElementById('inputStart');
-const inputEnd = document.getElementById('inputEnd');
-const saveModalBtn = document.getElementById('saveModal');
-const cancelModalBtn = document.getElementById('cancelModal');
+/* ===========================================================
+   MODAL AGREGAR / EDITAR
+=========================================================== */
 
 let editingId = null;
 
-function openModal(id = null){
-  editingId = id;
-  modalOverlay.classList.add('show');
-  if(id){
-    modalTitle.textContent = 'Editar gasto';
-    const it = state.items.find(x=>x.id === id);
-    if(!it) return;
-    inputName.value = it.name || '';
-    inputAmount.value = it.amount != null ? it.amount : '';
-    inputType.value = it.type || 'fijo';
-    populateMonthSelects();
-    if(it.start) inputStart.value = it.start;
-    if(it.end) inputEnd.value = it.end;
-    cuotasRow.style.display = (inputType.value === 'cuotas') ? 'block' : 'none';
-  } else {
-    modalTitle.textContent = 'Nueva factura / gasto';
-    inputName.value = '';
-    inputAmount.value = '';
-    inputType.value = 'fijo';
-    populateMonthSelects();
-    inputStart.value = currentMonth;
-    inputEnd.value = currentMonth;
-    cuotasRow.style.display = 'none';
-  }
-  // autofocus
-  setTimeout(()=> inputName.focus(), 200);
+$("#addBtn").onclick = () => openAddModal();
+$("#cancelModal").onclick = closeModal;
+
+function openAddModal(){
+  editingId = null;
+  $("#modalTitle").textContent = "Nueva factura";
+  $("#inputName").value = "";
+  $("#inputAmount").value = "";
+  $("#inputType").value = "fijo";
+  $("#cuotasRow").style.display = "none";
+  $("#inputStart").innerHTML = optionsMonthList();
+  $("#inputEnd").innerHTML = optionsMonthList();
+  $("#modalOverlay").classList.add("show");
 }
+
+function openEditModal(id){
+  const item = state.items.find(x => x.id === id);
+  if(!item) return;
+
+  editingId = id;
+  $("#modalTitle").textContent = "Editar factura";
+  $("#inputName").value = item.name;
+  $("#inputAmount").value = item.amount || "";
+  $("#inputType").value = item.type;
+
+  $("#inputStart").innerHTML = optionsMonthList();
+  $("#inputEnd").innerHTML = optionsMonthList();
+
+  if(item.type === "cuotas"){
+    $("#cuotasRow").style.display = "block";
+    $("#inputStart").value = item.start;
+    $("#inputEnd").value = item.end;
+  }else{
+    $("#cuotasRow").style.display = "none";
+  }
+
+  $("#modalOverlay").classList.add("show");
+}
+
+$("#inputType").onchange = () => {
+  $("#cuotasRow").style.display =
+    $("#inputType").value === "cuotas" ? "block" : "none";
+};
 
 function closeModal(){
-  modalOverlay.classList.remove('show');
-  editingId = null;
+  $("#modalOverlay").classList.remove("show");
 }
 
-cancelModalBtn.addEventListener('click', closeModal);
-modalOverlay.addEventListener('click', function(e){
-  if(e.target === modalOverlay) closeModal();
-});
+$("#saveModal").onclick = () => {
+  const name = $("#inputName").value.trim();
+  if(!name) return alert("Falta el nombre.");
 
-inputType.addEventListener('change', ()=> {
-  cuotasRow.style.display = inputType.value === 'cuotas' ? 'block' : 'none';
-});
+  const amount = $("#inputAmount").value ? Number($("#inputAmount").value) : null;
+  const type = $("#inputType").value;
 
-/* populate start/end selects with range of months (±5 years) */
-function populateMonthSelects(){
-  inputStart.innerHTML = '';
-  inputEnd.innerHTML = '';
-  const opts = [];
-  const now = new Date();
-  const startYear = now.getFullYear() - 3;
-  const endYear = now.getFullYear() + 3;
-  for(let y = startYear; y <= endYear; y++){
-    for(let m = 1; m <= 12; m++){
-      const mm = String(m).padStart(2,'0');
-      const val = `${y}-${mm}`;
-      const label = new Date(y, m-1, 1).toLocaleString(undefined, {month:'short', year:'numeric'});
-      opts.push({val, label});
-    }
-  }
-  opts.forEach(o => {
-    const e1 = document.createElement('option'); e1.value = o.val; e1.textContent = o.label;
-    const e2 = document.createElement('option'); e2.value = o.val; e2.textContent = o.label;
-    inputStart.appendChild(e1); inputEnd.appendChild(e2);
-  });
-}
-
-/* save from modal */
-saveModalBtn.addEventListener('click', ()=> {
-  const name = inputName.value.trim();
-  if(!name){
-    alert("El nombre es obligatorio.");
-    return;
-  }
-  const amountVal = inputAmount.value;
-  const amount = amountVal === '' ? null : Number(amountVal);
-  const type = inputType.value;
   let start = null, end = null;
-  if(type === 'cuotas'){
-    start = inputStart.value;
-    end = inputEnd.value;
-    if(!start || !end || start > end){
-      alert("Rango de cuotas inválido. Asegurate que la fecha de inicio sea anterior o igual a la final.");
-      return;
-    }
+  if(type === "cuotas"){
+    start = $("#inputStart").value;
+    end = $("#inputEnd").value;
   }
 
-  if(editingId){
-    // editar
-    const it = state.items.find(x=>x.id === editingId);
-    if(!it) return;
+  if(editingId === null){
+    state.items.push({
+      id: crypto.randomUUID(),
+      name, amount, type, start, end,
+      payed:{}
+    });
+  }else{
+    const it = state.items.find(x => x.id === editingId);
     it.name = name;
     it.amount = amount;
     it.type = type;
     it.start = start;
     it.end = end;
-  } else {
-    // crear
-    const newItem = {
-      id: uid(),
-      name, amount, type, start, end,
-      paid: {}
-    };
-    state.items.push(newItem);
   }
 
-  saveData(state);
-  render();
+  saveState();
   closeModal();
-});
-
-/* ============================
-   ADD button
-   ============================ */
-
-document.getElementById('addBtn').addEventListener('click', ()=> openModal());
-
-/* ============================
-   Month navigation
-   ============================ */
-
-document.getElementById('prevMonth').addEventListener('click', ()=> {
-  currentMonth = addMonths(currentMonth, -1);
   render();
-});
-document.getElementById('nextMonth').addEventListener('click', ()=> {
-  currentMonth = addMonths(currentMonth, +1);
-  render();
-});
+};
 
-/* ============================
-   Export / Import
-   ============================ */
+/* ===========================================================
+   LISTA DE MESES PARA SELECTS
+=========================================================== */
 
-document.getElementById('exportBtn').addEventListener('click', ()=> {
-  const dataStr = JSON.stringify(state, null, 2);
-  const blob = new Blob([dataStr], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `gastos-backup-${(new Date()).toISOString().slice(0,10)}.json`;
+function optionsMonthList(){
+  let html = "";
+  const year = new Date().getFullYear();
+  for(let y = year - 2; y <= year + 6; y++){
+    for(let m = 1; m <= 12; m++){
+      const k = `${y}-${pad(m)}`;
+      html += `<option value="${k}">${pad(m)}/${y}</option>`;
+    }
+  }
+  return html;
+}
+
+/* ===========================================================
+   EXPORTAR / IMPORTAR
+=========================================================== */
+
+$("#exportBtn").onclick = () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {
+    type: "application/json"
+  });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "facturas.json";
   a.click();
-  URL.revokeObjectURL(url);
-});
+};
 
-const importFile = document.getElementById('importFile');
-document.getElementById('importOpenBtn').addEventListener('click', ()=> importFile.click());
+$("#importOpenBtn").onclick = () => $("#importFile").click();
 
-importFile.addEventListener('change', function(){
-  const f = this.files[0];
-  if(!f) return;
+$("#importFile").onchange = e => {
+  const file = e.target.files[0];
+  if(!file) return;
+
   const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const parsed = JSON.parse(e.target.result);
-      if(!parsed || !Array.isArray(parsed.items)) {
-        if(parsed.items === undefined && Array.isArray(parsed)) {
-          // older format: an array directly
-          state.items = parsed;
-        } else {
-          throw new Error("Formato inesperado");
-        }
-      } else {
-        state = parsed;
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      if(data.items && data.currentMonth){
+        state = data;
+        saveState();
+        render();
+      }else{
+        alert("Archivo inválido.");
       }
-      saveData(state);
-      render();
-      alert("Importación completada.");
-    } catch(err){
-      console.error(err);
-      alert("Error importando archivo. Asegurate que sea un backup válido (.json).");
+    }catch(e){
+      alert("Error al leer JSON.");
     }
   };
-  reader.readAsText(f);
-  // reset input
-  this.value = "";
-});
+  reader.readAsText(file);
+};
 
-/* ============================
-   Init
-   ============================ */
-populateMonthSelects();
+/* ===========================================================
+   ⭐ MODAL DE IMPRESIÓN
+=========================================================== */
+
+$("#openPrintView").onclick = () => {
+  fillPrintTable();
+  $("#printModal").classList.add("show");
+};
+
+$("#closePrintModal").onclick = () => {
+  $("#printModal").classList.remove("show");
+};
+
+$("#execPrintBtn").onclick = () => {
+  window.print();
+};
+
+/* ------ Llenar tabla ------ */
+function fillPrintTable(){
+  const tbody = $("#printTable tbody");
+  tbody.innerHTML = "";
+
+  const month = state.currentMonth;
+
+  state.items
+    .filter(it => shouldShowItem(it, month))
+    .forEach(item => {
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${item.name}</td>
+        <td>${item.amount ? "$" + item.amount : "-"}</td>
+        <td>${item.type}</td>
+        <td>${item.type === "cuotas" ? item.start : "-"}</td>
+        <td>${item.type === "cuotas" ? item.end : "-"}</td>
+        <td>${item.payed?.[month] ? "Sí" : "No"}</td>
+      `;
+
+      tbody.appendChild(tr);
+    });
+}
+
+/* ===========================================================
+   INICIO
+=========================================================== */
+
+loadState();
 render();
+</script>
 
+<script>
 // ===== PWA =====
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
 }
-
 </script>
 </body>
-</html>
+</html> 
