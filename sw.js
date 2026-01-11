@@ -1,7 +1,11 @@
 self.addEventListener("install", e => {
   e.waitUntil(
     caches.open("facturas-v1").then(c =>
-      c.addAll(["./","index.html","manifest.json"])
+      c.addAll([
+        "./",
+        "./index.html",
+        "./manifest.json"
+      ])
     )
   );
 });
