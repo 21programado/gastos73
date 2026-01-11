@@ -1,7 +1,7 @@
 self.addEventListener("install", e => {
   e.waitUntil(
-    caches.open("facturas-v1").then(c =>
-      c.addAll([
+    caches.open("facturas-v1").then(cache =>
+      cache.addAll([
         "./",
         "./index.html",
         "./manifest.json"
@@ -12,6 +12,6 @@ self.addEventListener("install", e => {
 
 self.addEventListener("fetch", e => {
   e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request))
+    caches.match(e.request).then(resp => resp || fetch(e.request))
   );
 });
