@@ -1,6 +1,6 @@
 self.addEventListener("install", e => {
   e.waitUntil(
-    caches.open("facturas-v1").then(cache =>
+    caches.open("facturas-v2").then(cache =>
       cache.addAll([
         "./",
         "./index.html",
@@ -15,3 +15,4 @@ self.addEventListener("fetch", e => {
     caches.match(e.request).then(resp => resp || fetch(e.request))
   );
 });
+
