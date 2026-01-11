@@ -4,186 +4,561 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Control de Facturas</title>
+<style>
+  /* ====== Reset mínimo y tipografía ====== */
+  :root{
+    --bg:#fafafa; --card:#fff; --muted:#6b6b6b; --accent:#1764d6;
+    --danger:#d9534f; --ok:#28a745; --border:#e6e6e6; --glass: rgba(0,0,0,0.03);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background:var(--bg); color:#111; -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* ====== Layout ====== */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 14px; background:linear-gradient(180deg,var(--card),var(--glass));
+    border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:10;
+  }
+  header h1{margin:0; font-size:18px; letter-spacing:0.2px}
+  .controls{display:flex; gap:8px; align-items:center}
+  .monthWrap{display:flex; gap:8px; align-items:center; font-weight:600}
+  .btn{
+    border:1px solid var(--border); background:var(--card); padding:8px 10px; border-radius:8px;
+    font-size:14px; color:inherit; cursor:pointer;
+  }
+  .btn.secondary{background:transparent}
+  .btn.danger{background:var(--danger); color:#fff; border:none}
+  .btn.flat{border:none; background:transparent; padding:6px}
+  main{padding:12px;}
+
+  /* ====== Add button floating ====== */
+  .fab{
+    position:fixed; right:16px; bottom:18px; width:56px; height:56px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:28px; color:#fff;
+    background:var(--accent); box-shadow:0 8px 18px rgba(23,100,214,0.18); border:none; cursor:pointer;
+  }
+
+  /* ====== List ====== */
+  .list{display:flex; flex-direction:column; gap:10px}
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px;
+    display:flex; gap:10px; align-items:center; justify-content:space-between;
+  }
+  .left{display:flex; gap:10px; align-items:flex-start; flex:1}
+  .meta{display:flex; flex-direction:column}
+  .title{font-weight:600; font-size:15px}
+  .subtitle{font-size:13px; color:var(--muted); margin-top:4px}
+  .right{display:flex; gap:8px; align-items:center}
+  .small{font-size:13px; color:var(--muted)}
+
+  /* checkbox */
+  .tick{
+    width:44px; height:44px; border-radius:8px; border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; font-size:18px; cursor:pointer;
+  }
+  .tick.payed{background:var(--ok); color:#fff; border:none}
+
+  /* labels */
+  .tag{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid var(--border); background:transparent}
+  .tag.cuotas{background:rgba(23,100,214,0.06); border-color:rgba(23,100,214,0.12); color:var(--accent)}
+  .tag.fijo{background:rgba(0,0,0,0.03)}
+
+  /* form modal */
+  .overlay{position:fixed; inset:0; background:rgba(0,0,0,0.45); display:none; align-items:center; justify-content:center; z-index:50}
+  .overlay.show{display:flex}
+  .modal{width:94%; max-width:520px; background:var(--card); border-radius:12px; padding:14px; box-shadow:0 18px 40px rgba(0,0,0,0.12)}
+  .form-row{display:flex; gap:8px; margin-top:8px}
+  label{font-size:13px; color:var(--muted)}
+  input[type="text"], input[type="number"], select{
+    width:100%; padding:10px; border-radius:8px; border:1px solid var(--border); background:transparent;
+    font-size:14px;
+  }
+  .radioRow{display:flex; gap:8px; margin-top:8px}
+  .muted{color:var(--muted); font-size:13px}
+
+  /* responsive tweaks */
+  @media (min-width:640px){
+    main{max-width:720px; margin:0 auto}
+    .fab{right:28px; bottom:28px}
+  }
 
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1764d6">
 
-<style>
-:root{
-  --bg:#fafafa; --card:#fff; --muted:#6b6b6b; --accent:#1764d6;
-  --danger:#d9534f; --ok:#28a745; --border:#e6e6e6;
-}
-*{box-sizing:border-box}
-body{
-  margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto;
-  background:var(--bg); color:#111;
-}
-header{
-  display:flex; justify-content:space-between; align-items:center;
-  padding:12px; border-bottom:1px solid var(--border);
-  position:sticky; top:0; background:#fff; z-index:10;
-}
-.btn{border:1px solid var(--border); background:#fff; padding:8px 10px; border-radius:8px}
-.btn.flat{border:none}
-.btn.danger{background:var(--danger); color:#fff; border:none}
-
-main{padding:12px}
-.list{display:flex; flex-direction:column; gap:10px}
-.card{
-  background:#fff; border:1px solid var(--border); border-radius:10px;
-  padding:10px; display:flex; justify-content:space-between; gap:10px;
-}
-.left{display:flex; gap:10px}
-.tick{
-  width:40px; height:40px; border-radius:8px; border:1px solid var(--border);
-  display:flex; align-items:center; justify-content:center; cursor:pointer;
-}
-.tick.payed{background:var(--ok); color:#fff; border:none}
-.title{font-weight:600}
-.subtitle{font-size:13px; color:var(--muted)}
-.menu{
-  position:relative;
-}
-.menu button{
-  border:none; background:transparent; font-size:20px; cursor:pointer;
-}
-.menu-content{
-  position:absolute; right:0; top:24px;
-  background:#fff; border:1px solid var(--border);
-  border-radius:8px; display:none;
-}
-.menu-content button{
-  display:block; padding:8px 12px; width:100%; border:none; background:none;
-  text-align:left;
-}
-.menu-content button:hover{background:#eee}
-
-.overlay{
-  position:fixed; inset:0; background:rgba(0,0,0,.4);
-  display:none; align-items:center; justify-content:center;
-}
-.overlay.show{display:flex}
-.modal{
-  background:#fff; padding:14px; border-radius:12px; width:94%; max-width:480px;
-}
 </style>
 </head>
-
 <body>
 
 <header>
-  <strong id="currentMonthLabel"></strong>
-  <button class="btn" id="addBtn">+</button>
+ 
+  <div class="controls">
+    <div class="monthWrap">
+      <button class="btn flat" id="prevMonth" title="Mes previo">&lt;</button>
+      <div id="currentMonthLabel">— —</div>
+      <button class="btn flat" id="nextMonth" title="Mes siguiente">&gt;</button>
+    </div>
+    <button class="btn" id="exportBtn" title="Exportar respaldo">Exportar</button>
+    <button class="btn" id="importOpenBtn" title="Importar respaldo">Importar</button>
+  </div>
 </header>
 
 <main>
-  <div class="list" id="itemsList"></div>
+  <div class="list" id="itemsList">
+    <!-- tarjetas dinámicas -->
+  </div>
+
+  <p class="muted" style="margin-top:14px; font-size:13px">
+    Editar: toca el nombre. Marcar pago: toca la casilla. Límite mensual: solo se muestran gastos activos para el mes seleccionado.
+  </p>
 </main>
 
+<button class="fab" id="addBtn" title="Agregar gasto">+</button>
+
+<!-- Modal: agregar / editar -->
 <div class="overlay" id="modalOverlay">
-  <div class="modal">
-    <h3 id="modalTitle"></h3>
-    <input id="inputName" placeholder="Nombre" style="width:100%;margin-top:8px">
-    <div style="margin-top:10px;text-align:right">
-      <button class="btn" id="cancelModal">Cancelar</button>
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3 id="modalTitle">Nueva factura</h3>
+
+    <div style="margin-top:8px">
+      <label>Nombre</label>
+      <input type="text" id="inputName" placeholder="Ej. Luz, Internet" />
+    </div>
+
+    <div class="form-row">
+      <div style="flex:1">
+        <label>Monto (opcional)</label>
+        <input type="number" id="inputAmount" placeholder="Ej. 1250" min="0" step="0.01" />
+      </div>
+      <div style="width:40%">
+        <label>Tipo</label>
+        <select id="inputType">
+          <option value="fijo">Fijo</option>
+          <option value="cuotas">Cuotas</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="cuotasRow" style="display:none; margin-top:8px">
+      <label>Cuotas (inicio / fin)</label>
+      <div class="form-row">
+        <select id="inputStart"></select>
+        <select id="inputEnd"></select>
+      </div>
+      <div class="muted" style="margin-top:6px;font-size:13px">Seleccioná el mes y año en formato MM/YYYY</div>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:14px; justify-content:flex-end">
+      <button class="btn secondary" id="cancelModal">Cancelar</button>
       <button class="btn" id="saveModal">Guardar</button>
     </div>
   </div>
 </div>
 
+<!-- input file oculto para importar -->
+<input type="file" id="importFile" accept="application/json,text/json" style="display:none">
+
 <script>
-/* =======================
-   PWA
-======================= */
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js");
+/* ============================
+   ESTRUCTURA Y UTILIDADES
+   ============================ */
+
+const STORAGE_KEY = "gastos_app_v1";
+
+function uid(){
+  // id simple y seguro para local: timestamp + random
+  return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
 }
 
-/* =======================
-   Estado
-======================= */
-const $ = s => document.querySelector(s);
-let state = JSON.parse(localStorage.getItem("facturas")||"{}");
-state.items ||= [];
-state.month ||= new Date().toISOString().slice(0,7);
-let editingId = null;
-let dirty = false;
+function todayYMD(date = new Date()){
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  return `${y}-${m}`; // "2026-01"
+}
 
-function save(){ localStorage.setItem("facturas",JSON.stringify(state)); }
+function displayMonthLabel(ym){
+  const [y,m] = ym.split('-').map(Number);
+  const d = new Date(y, m-1, 1);
+  return d.toLocaleString(undefined, {month:'long', year:'numeric'});
+}
+
+/* load & save */
+function loadData(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return { items: [] };
+    return JSON.parse(raw);
+  } catch(e){
+    console.error("Error leyendo localStorage:", e);
+    return { items: [] };
+  }
+}
+function saveData(data){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+/* default model
+ item = {
+   id: uid(),
+   name: "Luz",
+   amount: 1250, // optional number or null
+   type: "fijo" | "cuotas",
+   start: "2025-12", // only for cuotas
+   end: "2026-05",   // only for cuotas
+   paid: { "2025-12": true, "2026-01": false, ... } // map month->bool
+ }
+*/
+
+/* ============================
+   ESTADO DE LA APLICACIÓN
+   ============================ */
+
+let state = loadData(); // { items: [...] }
+if(!state.items) state.items = [];
+
+let currentMonth = todayYMD();
+
+/* ============================
+   RENDERS
+   ============================ */
+
+const itemsList = document.getElementById('itemsList');
+const currentMonthLabel = document.getElementById('currentMonthLabel');
+
+function isActiveThisMonth(item, ym){
+  if(item.type === 'fijo') return true;
+  // cuotas
+  if(!item.start || !item.end) return true;
+  return (item.start <= ym && ym <= item.end);
+}
 
 function render(){
-  $("#currentMonthLabel").textContent = state.month;
-  const list = $("#itemsList");
-  list.innerHTML="";
-  state.items.forEach(it=>{
-    const card=document.createElement("div");
-    card.className="card";
-    const tick=document.createElement("div");
-    tick.className="tick"+(it.payed?" payed":"");
-    tick.textContent=it.payed?"✓":"";
-    tick.onclick=()=>{it.payed=!it.payed;save();render()};
-    const meta=document.createElement("div");
-    meta.innerHTML=`<div class="title">${it.name}</div>`;
-    meta.onclick=()=>openEdit(it.id);
-    const menu=document.createElement("div");
-    menu.className="menu";
-    menu.innerHTML=`
-      <button>⋮</button>
-      <div class="menu-content">
-        <button>Eliminar</button>
-      </div>`;
-    menu.querySelector("button").onclick=e=>{
-      e.stopPropagation();
-      menu.querySelector(".menu-content").style.display="block";
-    };
-    menu.querySelector(".menu-content button").onclick=()=>{
-      if(confirm("¿Eliminar esta factura?")){
-        state.items=state.items.filter(x=>x.id!==it.id);
-        save();render();
-      }
-    };
-    card.append(tick,meta,menu);
-    list.appendChild(card);
+  currentMonthLabel.textContent = displayMonthLabel(currentMonth);
+  itemsList.innerHTML = '';
+  // show items that are active this month
+  const visible = state.items.filter(it => isActiveThisMonth(it, currentMonth));
+  if(visible.length === 0){
+    const p = document.createElement('div');
+    p.className = 'card';
+    p.innerHTML = '<div class="left"><div class="meta"><div class="title">Sin gastos para este mes</div><div class="subtitle small">Agregá una factura o cambia el mes</div></div></div>';
+    itemsList.appendChild(p);
+    return;
+  }
+
+  visible.forEach(item => {
+    const paid = !!(item.paid && item.paid[currentMonth]);
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const left = document.createElement('div'); left.className = 'left';
+    // checkbox
+    const tick = document.createElement('div');
+    tick.className = 'tick' + (paid ? ' payed' : '');
+    tick.textContent = paid ? '✓' : '';
+    tick.title = paid ? 'Marcado como pagado' : 'Marcar como pagado';
+    tick.addEventListener('click', () => togglePaid(item.id, currentMonth));
+    left.appendChild(tick);
+
+    const meta = document.createElement('div'); meta.className = 'meta';
+    const title = document.createElement('div'); title.className = 'title';
+    title.textContent = item.name || "(sin nombre)";
+    // permitir editar al tocar el nombre
+    title.style.cursor = "pointer";
+    title.addEventListener('click', () => openModal(item.id));
+
+    const subtitle = document.createElement('div'); subtitle.className = 'subtitle';
+    const parts = [];
+    if(item.type === 'fijo') parts.push('Fijo mensual');
+    else if(item.type === 'cuotas'){
+      // compute index and total if start/end present
+      if(item.start && item.end){
+        const total = monthsBetween(item.start, item.end) + 1;
+        const index = monthsBetween(item.start, currentMonth) + 1;
+        parts.push(`Cuota ${index}/${total}`);
+      } else parts.push('Cuotas');
+    }
+    if(item.amount != null && item.amount !== '') parts.push(formatCurrency(item.amount));
+    subtitle.textContent = parts.join(' · ');
+    meta.appendChild(title);
+    meta.appendChild(subtitle);
+
+    left.appendChild(meta);
+
+    // right controls
+    const right = document.createElement('div'); right.className = 'right';
+    // edit small
+    const editBtn = document.createElement('button'); editBtn.className='btn flat'; editBtn.textContent='Editar';
+    editBtn.addEventListener('click', ()=>openModal(item.id));
+    // delete
+    const delBtn = document.createElement('button'); delBtn.className='btn flat'; delBtn.textContent='Eliminar';
+    delBtn.style.color = "var(--danger)";
+    delBtn.addEventListener('click', ()=>deleteItem(item.id));
+
+    right.appendChild(editBtn);
+    right.appendChild(delBtn);
+
+    card.appendChild(left);
+    card.appendChild(right);
+
+    itemsList.appendChild(card);
   });
 }
 
-function openAdd(){
-  editingId=null; dirty=false;
-  $("#modalTitle").textContent="Nueva factura";
-  $("#inputName").value="";
-  $("#modalOverlay").classList.add("show");
+/* ============================
+   UTIL: formato y meses
+   ============================ */
+
+function formatCurrency(v){
+  try {
+    const n = Number(v);
+    if(isNaN(n)) return '';
+    // simple format without currency sign; uses locale number formatting
+    return n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  } catch(e){ return v; }
 }
 
-function openEdit(id){
-  const it=state.items.find(x=>x.id===id);
-  if(!it)return;
-  editingId=id; dirty=false;
-  $("#modalTitle").textContent="Editar factura";
-  $("#inputName").value=it.name;
-  $("#modalOverlay").classList.add("show");
+function monthsBetween(startYM, endYM){
+  // both "YYYY-MM"
+  const [ys, ms] = startYM.split('-').map(Number);
+  const [ye, me] = endYM.split('-').map(Number);
+  return (ye - ys) * 12 + (me - ms);
 }
 
-$("#inputName").oninput=()=>dirty=true;
+function addMonths(ym, delta){
+  const [y,m] = ym.split('-').map(Number);
+  const date = new Date(y, m-1 + delta, 1);
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+}
 
-$("#cancelModal").onclick=()=>{
-  if(dirty && !confirm("Hay cambios sin guardar. ¿Cerrar igual?"))return;
-  $("#modalOverlay").classList.remove("show");
-};
+/* ============================
+   OPERACIONES: toggle, add, edit, delete
+   ============================ */
 
-$("#saveModal").onclick=()=>{
-  const name=$("#inputName").value.trim();
-  if(!name)return alert("Falta nombre");
-  if(editingId){
-    state.items.find(x=>x.id===editingId).name=name;
-  }else{
-    state.items.push({id:crypto.randomUUID(),name,payed:false});
+function togglePaid(id, ym){
+  const it = state.items.find(x=>x.id === id);
+  if(!it) return;
+  it.paid = it.paid || {};
+  it.paid[ym] = !it.paid[ym];
+  saveData(state);
+  render();
+}
+
+function deleteItem(id){
+  if(!confirm("¿Borrar este gasto? Esta acción no puede deshacerse.")) return;
+  state.items = state.items.filter(x=>x.id !== id);
+  saveData(state);
+  render();
+}
+
+/* ============================
+   MODAL: crear / editar
+   ============================ */
+
+const modalOverlay = document.getElementById('modalOverlay');
+const modalTitle = document.getElementById('modalTitle');
+const inputName = document.getElementById('inputName');
+const inputAmount = document.getElementById('inputAmount');
+const inputType = document.getElementById('inputType');
+const cuotasRow = document.getElementById('cuotasRow');
+const inputStart = document.getElementById('inputStart');
+const inputEnd = document.getElementById('inputEnd');
+const saveModalBtn = document.getElementById('saveModal');
+const cancelModalBtn = document.getElementById('cancelModal');
+
+let editingId = null;
+
+function openModal(id = null){
+  editingId = id;
+  modalOverlay.classList.add('show');
+  if(id){
+    modalTitle.textContent = 'Editar gasto';
+    const it = state.items.find(x=>x.id === id);
+    if(!it) return;
+    inputName.value = it.name || '';
+    inputAmount.value = it.amount != null ? it.amount : '';
+    inputType.value = it.type || 'fijo';
+    populateMonthSelects();
+    if(it.start) inputStart.value = it.start;
+    if(it.end) inputEnd.value = it.end;
+    cuotasRow.style.display = (inputType.value === 'cuotas') ? 'block' : 'none';
+  } else {
+    modalTitle.textContent = 'Nueva factura / gasto';
+    inputName.value = '';
+    inputAmount.value = '';
+    inputType.value = 'fijo';
+    populateMonthSelects();
+    inputStart.value = currentMonth;
+    inputEnd.value = currentMonth;
+    cuotasRow.style.display = 'none';
   }
-  save(); $("#modalOverlay").classList.remove("show"); render();
-};
+  // autofocus
+  setTimeout(()=> inputName.focus(), 200);
+}
 
-$("#addBtn").onclick=openAdd;
+function closeModal(){
+  modalOverlay.classList.remove('show');
+  editingId = null;
+}
 
+cancelModalBtn.addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', function(e){
+  if(e.target === modalOverlay) closeModal();
+});
+
+inputType.addEventListener('change', ()=> {
+  cuotasRow.style.display = inputType.value === 'cuotas' ? 'block' : 'none';
+});
+
+/* populate start/end selects with range of months (±5 years) */
+function populateMonthSelects(){
+  inputStart.innerHTML = '';
+  inputEnd.innerHTML = '';
+  const opts = [];
+  const now = new Date();
+  const startYear = now.getFullYear() - 3;
+  const endYear = now.getFullYear() + 3;
+  for(let y = startYear; y <= endYear; y++){
+    for(let m = 1; m <= 12; m++){
+      const mm = String(m).padStart(2,'0');
+      const val = `${y}-${mm}`;
+      const label = new Date(y, m-1, 1).toLocaleString(undefined, {month:'short', year:'numeric'});
+      opts.push({val, label});
+    }
+  }
+  opts.forEach(o => {
+    const e1 = document.createElement('option'); e1.value = o.val; e1.textContent = o.label;
+    const e2 = document.createElement('option'); e2.value = o.val; e2.textContent = o.label;
+    inputStart.appendChild(e1); inputEnd.appendChild(e2);
+  });
+}
+
+/* save from modal */
+saveModalBtn.addEventListener('click', ()=> {
+  const name = inputName.value.trim();
+  if(!name){
+    alert("El nombre es obligatorio.");
+    return;
+  }
+  const amountVal = inputAmount.value;
+  const amount = amountVal === '' ? null : Number(amountVal);
+  const type = inputType.value;
+  let start = null, end = null;
+  if(type === 'cuotas'){
+    start = inputStart.value;
+    end = inputEnd.value;
+    if(!start || !end || start > end){
+      alert("Rango de cuotas inválido. Asegurate que la fecha de inicio sea anterior o igual a la final.");
+      return;
+    }
+  }
+
+  if(editingId){
+    // editar
+    const it = state.items.find(x=>x.id === editingId);
+    if(!it) return;
+    it.name = name;
+    it.amount = amount;
+    it.type = type;
+    it.start = start;
+    it.end = end;
+  } else {
+    // crear
+    const newItem = {
+      id: uid(),
+      name, amount, type, start, end,
+      paid: {}
+    };
+    state.items.push(newItem);
+  }
+
+  saveData(state);
+  render();
+  closeModal();
+});
+
+/* ============================
+   ADD button
+   ============================ */
+
+document.getElementById('addBtn').addEventListener('click', ()=> openModal());
+
+/* ============================
+   Month navigation
+   ============================ */
+
+document.getElementById('prevMonth').addEventListener('click', ()=> {
+  currentMonth = addMonths(currentMonth, -1);
+  render();
+});
+document.getElementById('nextMonth').addEventListener('click', ()=> {
+  currentMonth = addMonths(currentMonth, +1);
+  render();
+});
+
+/* ============================
+   Export / Import
+   ============================ */
+
+document.getElementById('exportBtn').addEventListener('click', ()=> {
+  const dataStr = JSON.stringify(state, null, 2);
+  const blob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `gastos-backup-${(new Date()).toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+const importFile = document.getElementById('importFile');
+document.getElementById('importOpenBtn').addEventListener('click', ()=> importFile.click());
+
+importFile.addEventListener('change', function(){
+  const f = this.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if(!parsed || !Array.isArray(parsed.items)) {
+        if(parsed.items === undefined && Array.isArray(parsed)) {
+          // older format: an array directly
+          state.items = parsed;
+        } else {
+          throw new Error("Formato inesperado");
+        }
+      } else {
+        state = parsed;
+      }
+      saveData(state);
+      render();
+      alert("Importación completada.");
+    } catch(err){
+      console.error(err);
+      alert("Error importando archivo. Asegurate que sea un backup válido (.json).");
+    }
+  };
+  reader.readAsText(f);
+  // reset input
+  this.value = "";
+});
+
+/* ============================
+   Init
+   ============================ */
+populateMonthSelects();
 render();
+
+// ===== PWA =====
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+
 </script>
 </body>
 </html>
