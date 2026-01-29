@@ -1,10 +1,11 @@
 {
-  "name": "Control de Facturas",
-  "short_name": "Facturas",
-  "start_url": "./",
+  "name": "Control de Gastos",
+  "short_name": "MisGastos",
+  "description": "Control mensual de gastos personales",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#fafafa",
-  "theme_color": "#1764d6",
+  "background_color": "#2c3e50",
+  "theme_color": "#2c3e50",
   "icons": [
     {
       "src": "icon-192.png",

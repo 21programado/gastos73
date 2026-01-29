@@ -1,609 +1,509 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Control de Facturas</title>
-
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1764d6">
-
-<style>
-  /* ====== Reset mínimo y tipografía ====== */
-  :root{
-    --bg:#fafafa; --card:#fff; --muted:#6b6b6b; --accent:#1764d6;
-    --danger:#d9534f; --ok:#28a745; --border:#e6e6e6; --glass: rgba(0,0,0,0.03);
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0; font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    background:var(--bg); color:#111;
-    -webkit-font-smoothing:antialiased;
-  }
-
-  /* ====== Layout ====== */
-  header{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:12px 14px; background:linear-gradient(180deg,var(--card),var(--glass));
-    border-bottom:1px solid var(--border);
-    position:sticky; top:0; z-index:10;
-  }
-  header h1{margin:0; font-size:18px}
-  .controls{display:flex; gap:8px; align-items:center}
-  .monthWrap{display:flex; gap:8px; align-items:center; font-weight:600}
-
-  .btn{
-    border:1px solid var(--border); background:var(--card); padding:8px 10px; border-radius:8px;
-    font-size:14px; color:inherit; cursor:pointer;
-  }
-  .btn.secondary{background:transparent}
-  .btn.danger{background:var(--danger); color:#fff; border:none}
-  .btn.flat{border:none; background:transparent; padding:6px}
-
-  main{padding:12px}
-
-  /* ====== Add button floating ====== */
-  .fab{
-    position:fixed; right:16px; bottom:18px; width:56px; height:56px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center; font-size:28px; color:#fff;
-    background:var(--accent); box-shadow:0 8px 18px rgba(23,100,214,0.18); border:none; cursor:pointer;
-  }
-
-  /* ====== List ====== */
-  .list{display:flex; flex-direction:column; gap:10px}
-  .card{
-    background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px;
-    display:flex; gap:10px; align-items:center; justify-content:space-between;
-  }
-
-  .left{display:flex; gap:10px; align-items:flex-start; flex:1}
-  .meta{display:flex; flex-direction:column}
-  .title{font-weight:600; font-size:15px}
-  .subtitle{font-size:13px; color:var(--muted); margin-top:4px}
-  .right{display:flex; gap:8px; align-items:center}
-  .small{font-size:13px; color:var(--muted)}
-
-  /* checkbox */
-  .tick{
-    width:44px; height:44px; border-radius:8px; border:1px solid var(--border);
-    display:flex; align-items:center; justify-content:center; font-size:18px; cursor:pointer;
-  }
-  .tick.payed{background:var(--ok); color:#fff; border:none}
-
-  /* labels */
-  .tag{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid var(--border);}
-  .tag.cuotas{background:rgba(23,100,214,0.06); border-color:rgba(23,100,214,0.12); color:var(--accent)}
-  .tag.fijo{background:rgba(0,0,0,0.03)}
-
-  /* Overlay genérico */
-  .overlay{
-    position:fixed; inset:0; background:rgba(0,0,0,0.45);
-    display:none; align-items:center; justify-content:center;
-    z-index:50;
-  }
-  .overlay.show{display:flex}
-
-  /* Modal genérico */
-  .modal{
-    width:94%; max-width:520px; max-height:85vh;
-    overflow:auto;
-    background:var(--card); border-radius:12px;
-    padding:14px;
-    box-shadow:0 18px 40px rgba(0,0,0,0.12)
-  }
-
-  .form-row{display:flex; gap:8px; margin-top:8px}
-  label{font-size:13px; color:var(--muted)}
-  input[type="text"], input[type="number"], select{
-    width:100%; padding:10px; border-radius:8px;
-    border:1px solid var(--border); background:transparent;
-    font-size:14px;
-  }
-
-  /* ====== Modal impresión ====== */
-  #printModal .modal{
-    max-width:800px;
-    padding:20px;
-  }
-
-  #printTable{
-    width:100%;
-    border-collapse:collapse;
-    margin-top:10px;
-  }
-  #printTable th, #printTable td{
-    border:1px solid #ccc;
-    padding:6px 8px;
-    font-size:14px;
-  }
-  #printTable th{
-    background:#eee;
-    font-weight:600;
-  }
-
-  /* ====== Estilos exclusivos para impresión ====== */
-  @media print {
-    body * {
-      visibility: hidden !important;
-    }
-    #printModal, #printModal * {
-      visibility: visible !important;
-    }
-    #printModal {
-      position: fixed;
-      inset: 0;
-      margin: 0;
-      padding: 0;
-      background: white;
-    }
-    #closePrintModal, #execPrintBtn {
-      display:none;
-    }
-  }
-
-.delete-btn {
-  background: var(--danger);
-  color: #fff;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.delete-btn:hover {
-  background: #c64541;
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Gastos Mensuales</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .mes-navegacion {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+        }
+        
+        .mes-actual {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .total-mes {
+            background: #27ae60;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .lista-gastos {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .gasto-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .gasto-item.pagado {
+            border-left-color: #27ae60;
+            opacity: 0.8;
+        }
+        
+        .gasto-info h3 {
+            margin-bottom: 5px;
+        }
+        
+        .gasto-monto {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .gasto-acciones {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .btn-editar, .btn-eliminar {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        
+        .btn-editar { background: #f39c12; }
+        .btn-eliminar { background: #e74c3c; }
+        
+        .formulario-gasto {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        .campos-cuotas {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .btn-submit {
+            background: #2c3e50;
+            width: 100%;
+            padding: 12px;
+            font-size: 18px;
+        }
+        
+        .oculto {
+            display: none;
+        }
+        
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .gasto-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .gasto-acciones {
+                align-self: flex-end;
+            }
+        }
+    </style>
 </head>
 <body>
-
-<header>
-  <div class="controls">
-    <div class="monthWrap">
-      <button class="btn flat" id="prevMonth">&lt;</button>
-      <div id="currentMonthLabel">— —</div>
-      <button class="btn flat" id="nextMonth">&gt;</button>
+    <header>
+        <h1>📊 Control de Gastos Mensuales</h1>
+    </header>
+    
+    <div class="mes-navegacion">
+        <button class="btn" id="btnAnterior">◀ Mes Anterior</button>
+        <div class="mes-actual" id="mesActual">Enero 2024</div>
+        <button class="btn" id="btnSiguiente">Mes Siguiente ▶</button>
     </div>
-
-    <button class="btn" id="exportBtn">Exportar</button>
-    <button class="btn" id="importOpenBtn">Importar</button>
-
-    <!-- ⭐ Nuevo botón -->
-    <button class="btn" id="openPrintView">Imprimir</button>
-  </div>
-</header>
-
-<main>
-  <div class="list" id="itemsList"></div>
-
-  <p class="muted" style="margin-top:14px; font-size:13px">
-    Editar: toca el nombre. Marcar pago: toca la casilla.
-    Límite mensual: solo se muestran gastos activos para el mes seleccionado.
-  </p>
-</main>
-
-<button class="fab" id="addBtn">+</button>
-
-<!-- ========================= -->
-<!-- Modal: agregar / editar -->
-<!-- ========================= -->
-<div class="overlay" id="modalOverlay">
-  <div class="modal">
-    <h3 id="modalTitle">Nueva factura</h3>
-
-    <div style="margin-top:8px">
-      <label>Nombre</label>
-      <input type="text" id="inputName" />
+    
+    <div class="total-mes" id="totalMes">Total: $0.00</div>
+    
+    <div class="lista-gastos" id="listaGastos">
+        <!-- Los gastos se cargarán aquí -->
     </div>
-
-    <div class="form-row">
-      <div style="flex:1">
-        <label>Monto (opcional)</label>
-        <input type="number" id="inputAmount" />
-      </div>
-
-      <div style="width:40%">
-        <label>Tipo</label>
-        <select id="inputType">
-          <option value="fijo">Fijo</option>
-          <option value="cuotas">Cuotas</option>
-        </select>
-      </div>
+    
+    <div class="formulario-gasto" id="formularioGasto">
+        <h2>Agregar Nuevo Gasto</h2>
+        <form id="formGasto">
+            <div class="form-group">
+                <label for="descripcion">Descripción *</label>
+                <input type="text" id="descripcion" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="monto">Monto (opcional, default 0)</label>
+                <input type="number" id="monto" min="0" step="0.01">
+            </div>
+            
+            <div class="form-group">
+                <label for="tipo">Tipo *</label>
+                <select id="tipo" required>
+                    <option value="Fijo">Fijo (todos los meses)</option>
+                    <option value="Cuotas">Cuotas</option>
+                </select>
+            </div>
+            
+            <div class="campos-cuotas" id="camposCuotas">
+                <div class="form-group">
+                    <label for="cuotas">Total de Cuotas</label>
+                    <input type="number" id="cuotas" min="2" value="2">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="mes_inicio">Mes de Inicio *</label>
+                <input type="month" id="mes_inicio" required>
+            </div>
+            
+            <div class="campos-cuotas" id="campoMesFin">
+                <div class="form-group">
+                    <label for="mes_fin">Mes de Fin (solo cuotas)</label>
+                    <input type="month" id="mes_fin">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="estado">Estado</label>
+                <select id="estado">
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Pagado">Pagado</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="btn btn-submit">💾 Guardar Gasto</button>
+            <button type="button" class="btn" id="btnCancelar" style="margin-top: 10px; background: #95a5a6;">Cancelar</button>
+        </form>
     </div>
-
-    <div id="cuotasRow" style="display:none; margin-top:8px">
-      <label>Cuotas (inicio / fin)</label>
-      <div class="form-row">
-        <select id="inputStart"></select>
-        <select id="inputEnd"></select>
-      </div>
-      <div class="muted" style="margin-top:6px;font-size:13px">
-        Seleccioná mes y año (MM/YYYY)
-      </div>
-    </div>
-
-    <div style="display:flex; gap:8px; margin-top:14px; justify-content:flex-end">
-      <button class="btn secondary" id="cancelModal">Cancelar</button>
-      <button class="btn" id="saveModal">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ========================= -->
-<!-- ⭐ NUEVO: Modal de impresión -->
-<!-- ========================= -->
-<div class="overlay" id="printModal">
-  <div class="modal">
-    <h3>Vista para imprimir</h3>
-
-    <table id="printTable">
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Monto</th>
-          <th>Tipo</th>
-          <th>Inicio</th>
-          <th>Fin</th>
-          <th>Pagos</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <div style="text-align:right; margin-top:14px;">
-      <button class="btn secondary" id="closePrintModal">Cerrar</button>
-      <button class="btn" id="execPrintBtn">Imprimir</button>
-    </div>
-  </div>
-</div>
-
-<!-- Input archivo oculto -->
-<input type="file" id="importFile" accept="application/json">
-
-<script>
-/* ===========================================================
-   UTILIDADES
-=========================================================== */
-
-const $ = s => document.querySelector(s);
-
-function formatMonth(date){
-  return date.toLocaleDateString("es-UY", { month:"long", year:"numeric" });
-}
-
-function pad(n){ return n.toString().padStart(2,"0"); }
-
-function monthKey(date){
-  return `${date.getFullYear()}-${pad(date.getMonth()+1)}`;
-}
-
-function parseMonthKey(key){
-  const [y,m] = key.split("-").map(Number);
-  return new Date(y, m-1, 1);
-}
-
-/* ===========================================================
-   ESTADO Y STORAGE
-=========================================================== */
-
-let state = {
-  items: [],       // { id, name, amount, type, start, end, payed: { [month]:boolean } }
-  currentMonth: monthKey(new Date())
-};
-
-function loadState(){
-  try{
-    const raw = localStorage.getItem("facturas-data");
-    if(raw){
-      state = JSON.parse(raw);
-    }
-  }catch(e){}
-}
-
-function saveState(){
-  localStorage.setItem("facturas-data", JSON.stringify(state));
-}
-
-/* ===========================================================
-   RENDER PRINCIPAL
-=========================================================== */
-
-function shouldShowItem(item, month){
-  if(item.type === "fijo") return true;
-  if(item.type === "cuotas"){
-    return month >= item.start && month <= item.end;
-  }
-  return false;
-}
-
-function render(){
-  $("#currentMonthLabel").textContent = formatMonth(parseMonthKey(state.currentMonth));
-
-  const list = $("#itemsList");
-  list.innerHTML = "";
-
-  state.items
-    .filter(it => shouldShowItem(it, state.currentMonth))
-    .forEach(item => {
-      const el = document.createElement("div");
-      el.className = "card";
-
-      const tick = document.createElement("div");
-      tick.className = "tick " + (item.payed?.[state.currentMonth] ? "payed" : "");
-      tick.textContent = item.payed?.[state.currentMonth] ? "✓" : "";
-      tick.onclick = () => {
-        if(!item.payed) item.payed = {};
-        item.payed[state.currentMonth] = !item.payed[state.currentMonth];
-        saveState(); render();
-      };
-
-      const meta = document.createElement("div");
-      meta.className = "meta";
-
-      const title = document.createElement("div");
-      title.className = "title";
-      title.textContent = item.name;
-      title.onclick = () => openEditModal(item.id);
-
-      const subtitle = document.createElement("div");
-      subtitle.className = "subtitle";
-      subtitle.textContent =
-        item.type === "fijo"
-          ? "Fijo"
-          : `Cuotas ${item.start} → ${item.end}`;
-
-      meta.append(title, subtitle);
-
-      const right = document.createElement("div");
-      right.className = "right";
-      right.innerHTML = `
-        ${item.amount ? `<div class="small">$${item.amount}</div>` : ""}
-        <div class="tag ${item.type}">${item.type}</div>
-      `;
-
-// Botón eliminar
-const delBtn = document.createElement("button");
-delBtn.textContent = "Eliminar";
-delBtn.className = "delete-btn";
-
-delBtn.onclick = (e) => {
-  e.stopPropagation();
-  if (confirm("¿Eliminar esta factura?")) {
-    state.items = state.items.filter(x => x.id !== item.id);
-    saveState();
-    render();
-  }
-};
-
-right.appendChild(delBtn);
-
-      const left = document.createElement("div");
-      left.className = "left";
-      left.append(tick, meta);
-
-      el.append(left, right);
-      list.appendChild(el);
-    });
-}
-
-/* ===========================================================
-   MESES
-=========================================================== */
-
-$("#prevMonth").onclick = () => {
-  const d = parseMonthKey(state.currentMonth);
-  d.setMonth(d.getMonth() - 1);
-  state.currentMonth = monthKey(d);
-  saveState(); render();
-};
-
-$("#nextMonth").onclick = () => {
-  const d = parseMonthKey(state.currentMonth);
-  d.setMonth(d.getMonth() + 1);
-  state.currentMonth = monthKey(d);
-  saveState(); render();
-};
-
-/* ===========================================================
-   MODAL AGREGAR / EDITAR
-=========================================================== */
-
-let editingId = null;
-
-$("#addBtn").onclick = () => openAddModal();
-$("#cancelModal").onclick = closeModal;
-
-function openAddModal(){
-  editingId = null;
-  $("#modalTitle").textContent = "Nueva factura";
-  $("#inputName").value = "";
-  $("#inputAmount").value = "";
-  $("#inputType").value = "fijo";
-  $("#cuotasRow").style.display = "none";
-  $("#inputStart").innerHTML = optionsMonthList();
-  $("#inputEnd").innerHTML = optionsMonthList();
-  $("#modalOverlay").classList.add("show");
-}
-
-function openEditModal(id){
-  const item = state.items.find(x => x.id === id);
-  if(!item) return;
-
-  editingId = id;
-  $("#modalTitle").textContent = "Editar factura";
-  $("#inputName").value = item.name;
-  $("#inputAmount").value = item.amount || "";
-  $("#inputType").value = item.type;
-
-  $("#inputStart").innerHTML = optionsMonthList();
-  $("#inputEnd").innerHTML = optionsMonthList();
-
-  if(item.type === "cuotas"){
-    $("#cuotasRow").style.display = "block";
-    $("#inputStart").value = item.start;
-    $("#inputEnd").value = item.end;
-  }else{
-    $("#cuotasRow").style.display = "none";
-  }
-
-  $("#modalOverlay").classList.add("show");
-}
-
-$("#inputType").onchange = () => {
-  $("#cuotasRow").style.display =
-    $("#inputType").value === "cuotas" ? "block" : "none";
-};
-
-function closeModal(){
-  $("#modalOverlay").classList.remove("show");
-}
-
-$("#saveModal").onclick = () => {
-  const name = $("#inputName").value.trim();
-  if(!name) return alert("Falta el nombre.");
-
-  const amount = $("#inputAmount").value ? Number($("#inputAmount").value) : null;
-  const type = $("#inputType").value;
-
-  let start = null, end = null;
-  if(type === "cuotas"){
-    start = $("#inputStart").value;
-    end = $("#inputEnd").value;
-  }
-
-  if(editingId === null){
-    state.items.push({
-      id: crypto.randomUUID(),
-      name, amount, type, start, end,
-      payed:{}
-    });
-  }else{
-    const it = state.items.find(x => x.id === editingId);
-    it.name = name;
-    it.amount = amount;
-    it.type = type;
-    it.start = start;
-    it.end = end;
-  }
-
-  saveState();
-  closeModal();
-  render();
-};
-
-/* ===========================================================
-   LISTA DE MESES PARA SELECTS
-=========================================================== */
-
-function optionsMonthList(){
-  let html = "";
-  const year = new Date().getFullYear();
-  for(let y = year - 2; y <= year + 6; y++){
-    for(let m = 1; m <= 12; m++){
-      const k = `${y}-${pad(m)}`;
-      html += `<option value="${k}">${pad(m)}/${y}</option>`;
-    }
-  }
-  return html;
-}
-
-/* ===========================================================
-   EXPORTAR / IMPORTAR
-=========================================================== */
-
-$("#exportBtn").onclick = () => {
-  const blob = new Blob([JSON.stringify(state, null, 2)], {
-    type: "application/json"
-  });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "facturas.json";
-  a.click();
-};
-
-$("#importOpenBtn").onclick = () => $("#importFile").click();
-
-$("#importFile").onchange = e => {
-  const file = e.target.files[0];
-  if(!file) return;
-
-  const reader = new FileReader();
-  reader.onload = () => {
-    try{
-      const data = JSON.parse(reader.result);
-      if(data.items && data.currentMonth){
-        state = data;
-        saveState();
-        render();
-      }else{
-        alert("Archivo inválido.");
-      }
-    }catch(e){
-      alert("Error al leer JSON.");
-    }
-  };
-  reader.readAsText(file);
-};
-
-/* ===========================================================
-   ⭐ MODAL DE IMPRESIÓN
-=========================================================== */
-
-$("#openPrintView").onclick = () => {
-  fillPrintTable();
-  $("#printModal").classList.add("show");
-};
-
-$("#closePrintModal").onclick = () => {
-  $("#printModal").classList.remove("show");
-};
-
-$("#execPrintBtn").onclick = () => {
-  window.print();
-};
-
-/* ------ Llenar tabla ------ */
-function fillPrintTable(){
-  const tbody = $("#printTable tbody");
-  tbody.innerHTML = "";
-
-  const month = state.currentMonth;
-
-  state.items
-    .filter(it => shouldShowItem(it, month))
-    .forEach(item => {
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${item.name}</td>
-        <td>${item.amount ? "$" + item.amount : "-"}</td>
-        <td>${item.type}</td>
-        <td>${item.type === "cuotas" ? item.start : "-"}</td>
-        <td>${item.type === "cuotas" ? item.end : "-"}</td>
-        <td>${item.payed?.[month] ? "Sí" : "No"}</td>
-      `;
-
-      tbody.appendChild(tr);
-    });
-}
-
-/* ===========================================================
-   INICIO
-=========================================================== */
-
-loadState();
-render();
-</script>
-
-<script>
-// ===== PWA =====
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
-}
-</script>
+    
+    <script>
+        // CONFIGURACIÓN
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyxZYiJG0EooZcx_kYc5zavzOZBL7evm18uAMdlUKnyY2gGAbNsTGWsCLqqvojVG88I/exec'; // <-- PON TU URL AQUÍ
+        
+        // Estado de la aplicación
+        let mesActual = new Date().getFullYear() + '-' + 
+                       String(new Date().getMonth() + 1).padStart(2, '0');
+        let editandoId = null;
+        
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            configurarEventos();
+            cargarMes(mesActual);
+            configurarFechaInicio();
+        });
+        
+        function configurarEventos() {
+            // Navegación por meses
+            document.getElementById('btnAnterior').addEventListener('click', () => cambiarMes(-1));
+            document.getElementById('btnSiguiente').addEventListener('click', () => cambiarMes(1));
+            
+            // Mostrar/ocultar campos de cuotas
+            document.getElementById('tipo').addEventListener('change', function() {
+                const mostrarCuotas = this.value === 'Cuotas';
+                document.getElementById('camposCuotas').style.display = mostrarCuotas ? 'block' : 'none';
+                document.getElementById('campoMesFin').style.display = mostrarCuotas ? 'block' : 'none';
+                
+                if (mostrarCuotas) {
+                    calcularMesFin();
+                }
+            });
+            
+            // Calcular mes fin cuando cambia cuotas o mes inicio
+            document.getElementById('cuotas').addEventListener('change', calcularMesFin);
+            document.getElementById('mes_inicio').addEventListener('change', calcularMesFin);
+            
+            // Formulario
+            document.getElementById('formGasto').addEventListener('submit', guardarGasto);
+            document.getElementById('btnCancelar').addEventListener('click', resetForm);
+        }
+        
+        function configurarFechaInicio() {
+            const hoy = new Date();
+            const mesFormato = hoy.getFullYear() + '-' + 
+                              String(hoy.getMonth() + 1).padStart(2, '0');
+            document.getElementById('mes_inicio').value = mesFormato;
+        }
+        
+        function calcularMesFin() {
+            if (document.getElementById('tipo').value !== 'Cuotas') return;
+            
+            const mesInicio = document.getElementById('mes_inicio').value;
+            const cuotas = parseInt(document.getElementById('cuotas').value) || 2;
+            
+            if (mesInicio) {
+                const [anio, mes] = mesInicio.split('-').map(Number);
+                let mesFin = mes + cuotas - 1;
+                let anioFin = anio;
+                
+                while (mesFin > 12) {
+                    mesFin -= 12;
+                    anioFin += 1;
+                }
+                
+                const mesFinStr = anioFin + '-' + String(mesFin).padStart(2, '0');
+                document.getElementById('mes_fin').value = mesFinStr;
+            }
+        }
+        
+        function cambiarMes(direccion) {
+            const [anio, mes] = mesActual.split('-').map(Number);
+            let nuevoMes = mes + direccion;
+            let nuevoAnio = anio;
+            
+            if (nuevoMes > 12) {
+                nuevoMes = 1;
+                nuevoAnio += 1;
+            } else if (nuevoMes < 1) {
+                nuevoMes = 12;
+                nuevoAnio -= 1;
+            }
+            
+            mesActual = nuevoAnio + '-' + String(nuevoMes).padStart(2, '0');
+            cargarMes(mesActual);
+        }
+        
+        async function cargarMes(mes) {
+            try {
+                // Actualizar display del mes
+                const fecha = new Date(mes + '-01');
+                const nombreMes = fecha.toLocaleDateString('es-ES', { 
+                    month: 'long', 
+                    year: 'numeric' 
+                }).replace(/^\w/, c => c.toUpperCase());
+                
+                document.getElementById('mesActual').textContent = nombreMes;
+                
+                // Cargar gastos desde la API
+                const respuesta = await fetch(`${API_URL}?accion=obtener_mes&mes=${mes}`);
+                const datos = await respuesta.json();
+                
+                mostrarGastos(datos.gastos, datos.total);
+            } catch (error) {
+                console.error('Error al cargar mes:', error);
+                alert('Error al cargar los gastos');
+            }
+        }
+        
+        function mostrarGastos(gastos, total) {
+            const lista = document.getElementById('listaGastos');
+            const totalElement = document.getElementById('totalMes');
+            
+            // Actualizar total
+            totalElement.textContent = `Total: $${total.toFixed(2)}`;
+            
+            // Mostrar gastos
+            if (gastos.length === 0) {
+                lista.innerHTML = '<div class="gasto-item">No hay gastos este mes</div>';
+                return;
+            }
+            
+            lista.innerHTML = gastos.map(gasto => `
+                <div class="gasto-item ${gasto.estado === 'Pagado' ? 'pagado' : ''}" data-id="${gasto.id}">
+                    <div class="gasto-info">
+                        <h3>${gasto.descripcion}</h3>
+                        <div>
+                            ${gasto.tipo === 'Cuotas' ? 
+                              `Cuota ${gasto.mes_inicio.split('-')[1]}/${gasto.cuotas} • ` : ''}
+                            ${gasto.estado}
+                        </div>
+                    </div>
+                    <div class="gasto-monto">$${parseFloat(gasto.monto).toFixed(2)}</div>
+                    <div class="gasto-acciones">
+                        <button class="btn btn-editar" onclick="editarGasto(${gasto.id})">Editar</button>
+                        <button class="btn btn-eliminar" onclick="eliminarGasto(${gasto.id})">Eliminar</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function guardarGasto(e) {
+            e.preventDefault();
+            
+            const formData = {
+                descripcion: document.getElementById('descripcion').value,
+                monto: parseFloat(document.getElementById('monto').value) || 0,
+                tipo: document.getElementById('tipo').value,
+                cuotas: parseInt(document.getElementById('cuotas').value) || 1,
+                mes_inicio: document.getElementById('mes_inicio').value,
+                estado: document.getElementById('estado').value
+            };
+            
+            // Solo agregar mes_fin si es cuotas
+            if (formData.tipo === 'Cuotas') {
+                formData.mes_fin = document.getElementById('mes_fin').value;
+            }
+            
+            try {
+                const accion = editandoId ? 'editar' : 'agregar';
+                const url = API_URL;
+                
+                if (editandoId) {
+                    formData.id = editandoId;
+                }
+                
+                const respuesta = await fetch(url, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        accion: accion,
+                        ...formData
+                    })
+                });
+                
+                const resultado = await respuesta.json();
+                
+                if (resultado.error) {
+                    throw new Error(resultado.error);
+                }
+                
+                alert(editandoId ? 'Gasto actualizado' : 'Gasto agregado');
+                resetForm();
+                cargarMes(mesActual);
+                
+            } catch (error) {
+                console.error('Error al guardar:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        function editarGasto(id) {
+            const elemento = document.querySelector(`[data-id="${id}"]`);
+            if (!elemento) return;
+            
+            // Buscar el gasto en la lista actual
+            const gastos = document.querySelectorAll('.gasto-item');
+            let gastoData = null;
+            
+            gastos.forEach(gasto => {
+                if (parseInt(gasto.dataset.id) === id) {
+                    const descripcion = gasto.querySelector('h3').textContent;
+                    const monto = gasto.querySelector('.gasto-monto').textContent.replace('$', '');
+                    
+                    gastoData = {
+                        id: id,
+                        descripcion: descripcion,
+                        monto: parseFloat(monto)
+                    };
+                }
+            });
+            
+            if (gastoData) {
+                editandoId = id;
+                document.getElementById('descripcion').value = gastoData.descripcion;
+                document.getElementById('monto').value = gastoData.monto;
+                
+                // Scroll al formulario
+                document.getElementById('formularioGasto').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+        
+        async function eliminarGasto(id) {
+            if (!confirm('¿Eliminar este gasto?')) return;
+            
+            try {
+                const respuesta = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        accion: 'eliminar',
+                        id: id
+                    })
+                });
+                
+                const resultado = await respuesta.json();
+                
+                if (resultado.error) {
+                    throw new Error(resultado.error);
+                }
+                
+                alert('Gasto eliminado');
+                cargarMes(mesActual);
+                
+            } catch (error) {
+                console.error('Error al eliminar:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        function resetForm() {
+            document.getElementById('formGasto').reset();
+            editandoId = null;
+            configurarFechaInicio();
+            document.getElementById('camposCuotas').style.display = 'none';
+            document.getElementById('campoMesFin').style.display = 'none';
+        }
+    </script>
 </body>
-</html> 
+</html>
