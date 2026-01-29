@@ -250,260 +250,39 @@
         </form>
     </div>
     
-    <script>
-        // CONFIGURACIÓN
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyxZYiJG0EooZcx_kYc5zavzOZBL7evm18uAMdlUKnyY2gGAbNsTGWsCLqqvojVG88I/exec'; // <-- PON TU URL AQUÍ
+<script>
+// CONFIG - PON TU URL AQUÍ
+const API_URL = 'https://script.google.com/macros/s/AKfycbyxZYiJG0EooZcx_kYc5zavzOZBL7evm18uAMdlUKnyY2gGAbNsTGWsCLqqvojVG88I/exec';
+let mesActual = '2024-01';
+
+async function testAPI() {
+    console.log('Probando conexión con:', API_URL);
+    
+    try {
+        // Test simple GET
+        const response = await fetch(`${API_URL}?accion=obtener_mes&mes=2024-01`);
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
         
-        // Estado de la aplicación
-        let mesActual = new Date().getFullYear() + '-' + 
-                       String(new Date().getMonth() + 1).padStart(2, '0');
-        let editandoId = null;
+        const data = await response.json();
+        console.log('Datos recibidos:', data);
         
-        // Inicializar
-        document.addEventListener('DOMContentLoaded', function() {
-            configurarEventos();
-            cargarMes(mesActual);
-            configurarFechaInicio();
-        });
+        alert('✅ Conexión exitosa! Puedes ver detalles en la consola (F12)');
         
-        function configurarEventos() {
-            // Navegación por meses
-            document.getElementById('btnAnterior').addEventListener('click', () => cambiarMes(-1));
-            document.getElementById('btnSiguiente').addEventListener('click', () => cambiarMes(1));
-            
-            // Mostrar/ocultar campos de cuotas
-            document.getElementById('tipo').addEventListener('change', function() {
-                const mostrarCuotas = this.value === 'Cuotas';
-                document.getElementById('camposCuotas').style.display = mostrarCuotas ? 'block' : 'none';
-                document.getElementById('campoMesFin').style.display = mostrarCuotas ? 'block' : 'none';
-                
-                if (mostrarCuotas) {
-                    calcularMesFin();
-                }
-            });
-            
-            // Calcular mes fin cuando cambia cuotas o mes inicio
-            document.getElementById('cuotas').addEventListener('change', calcularMesFin);
-            document.getElementById('mes_inicio').addEventListener('change', calcularMesFin);
-            
-            // Formulario
-            document.getElementById('formGasto').addEventListener('submit', guardarGasto);
-            document.getElementById('btnCancelar').addEventListener('click', resetForm);
-        }
+    } catch (error) {
+        console.error('❌ Error detallado:', error);
         
-        function configurarFechaInicio() {
-            const hoy = new Date();
-            const mesFormato = hoy.getFullYear() + '-' + 
-                              String(hoy.getMonth() + 1).padStart(2, '0');
-            document.getElementById('mes_inicio').value = mesFormato;
-        }
+        // Más info del error
+        const testUrl = `${API_URL}?accion=obtener_mes&mes=2024-01`;
+        console.log('URL probada:', testUrl);
         
-        function calcularMesFin() {
-            if (document.getElementById('tipo').value !== 'Cuotas') return;
-            
-            const mesInicio = document.getElementById('mes_inicio').value;
-            const cuotas = parseInt(document.getElementById('cuotas').value) || 2;
-            
-            if (mesInicio) {
-                const [anio, mes] = mesInicio.split('-').map(Number);
-                let mesFin = mes + cuotas - 1;
-                let anioFin = anio;
-                
-                while (mesFin > 12) {
-                    mesFin -= 12;
-                    anioFin += 1;
-                }
-                
-                const mesFinStr = anioFin + '-' + String(mesFin).padStart(2, '0');
-                document.getElementById('mes_fin').value = mesFinStr;
-            }
-        }
-        
-        function cambiarMes(direccion) {
-            const [anio, mes] = mesActual.split('-').map(Number);
-            let nuevoMes = mes + direccion;
-            let nuevoAnio = anio;
-            
-            if (nuevoMes > 12) {
-                nuevoMes = 1;
-                nuevoAnio += 1;
-            } else if (nuevoMes < 1) {
-                nuevoMes = 12;
-                nuevoAnio -= 1;
-            }
-            
-            mesActual = nuevoAnio + '-' + String(nuevoMes).padStart(2, '0');
-            cargarMes(mesActual);
-        }
-        
-        async function cargarMes(mes) {
-            try {
-                // Actualizar display del mes
-                const fecha = new Date(mes + '-01');
-                const nombreMes = fecha.toLocaleDateString('es-ES', { 
-                    month: 'long', 
-                    year: 'numeric' 
-                }).replace(/^\w/, c => c.toUpperCase());
-                
-                document.getElementById('mesActual').textContent = nombreMes;
-                
-                // Cargar gastos desde la API
-                const respuesta = await fetch(`${API_URL}?accion=obtener_mes&mes=${mes}`);
-                const datos = await respuesta.json();
-                
-                mostrarGastos(datos.gastos, datos.total);
-            } catch (error) {
-                console.error('Error al cargar mes:', error);
-                alert('Error al cargar los gastos');
-            }
-        }
-        
-        function mostrarGastos(gastos, total) {
-            const lista = document.getElementById('listaGastos');
-            const totalElement = document.getElementById('totalMes');
-            
-            // Actualizar total
-            totalElement.textContent = `Total: $${total.toFixed(2)}`;
-            
-            // Mostrar gastos
-            if (gastos.length === 0) {
-                lista.innerHTML = '<div class="gasto-item">No hay gastos este mes</div>';
-                return;
-            }
-            
-            lista.innerHTML = gastos.map(gasto => `
-                <div class="gasto-item ${gasto.estado === 'Pagado' ? 'pagado' : ''}" data-id="${gasto.id}">
-                    <div class="gasto-info">
-                        <h3>${gasto.descripcion}</h3>
-                        <div>
-                            ${gasto.tipo === 'Cuotas' ? 
-                              `Cuota ${gasto.mes_inicio.split('-')[1]}/${gasto.cuotas} • ` : ''}
-                            ${gasto.estado}
-                        </div>
-                    </div>
-                    <div class="gasto-monto">$${parseFloat(gasto.monto).toFixed(2)}</div>
-                    <div class="gasto-acciones">
-                        <button class="btn btn-editar" onclick="editarGasto(${gasto.id})">Editar</button>
-                        <button class="btn btn-eliminar" onclick="eliminarGasto(${gasto.id})">Eliminar</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-        
-        async function guardarGasto(e) {
-            e.preventDefault();
-            
-            const formData = {
-                descripcion: document.getElementById('descripcion').value,
-                monto: parseFloat(document.getElementById('monto').value) || 0,
-                tipo: document.getElementById('tipo').value,
-                cuotas: parseInt(document.getElementById('cuotas').value) || 1,
-                mes_inicio: document.getElementById('mes_inicio').value,
-                estado: document.getElementById('estado').value
-            };
-            
-            // Solo agregar mes_fin si es cuotas
-            if (formData.tipo === 'Cuotas') {
-                formData.mes_fin = document.getElementById('mes_fin').value;
-            }
-            
-            try {
-                const accion = editandoId ? 'editar' : 'agregar';
-                const url = API_URL;
-                
-                if (editandoId) {
-                    formData.id = editandoId;
-                }
-                
-                const respuesta = await fetch(url, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        accion: accion,
-                        ...formData
-                    })
-                });
-                
-                const resultado = await respuesta.json();
-                
-                if (resultado.error) {
-                    throw new Error(resultado.error);
-                }
-                
-                alert(editandoId ? 'Gasto actualizado' : 'Gasto agregado');
-                resetForm();
-                cargarMes(mesActual);
-                
-            } catch (error) {
-                console.error('Error al guardar:', error);
-                alert('Error: ' + error.message);
-            }
-        }
-        
-        function editarGasto(id) {
-            const elemento = document.querySelector(`[data-id="${id}"]`);
-            if (!elemento) return;
-            
-            // Buscar el gasto en la lista actual
-            const gastos = document.querySelectorAll('.gasto-item');
-            let gastoData = null;
-            
-            gastos.forEach(gasto => {
-                if (parseInt(gasto.dataset.id) === id) {
-                    const descripcion = gasto.querySelector('h3').textContent;
-                    const monto = gasto.querySelector('.gasto-monto').textContent.replace('$', '');
-                    
-                    gastoData = {
-                        id: id,
-                        descripcion: descripcion,
-                        monto: parseFloat(monto)
-                    };
-                }
-            });
-            
-            if (gastoData) {
-                editandoId = id;
-                document.getElementById('descripcion').value = gastoData.descripcion;
-                document.getElementById('monto').value = gastoData.monto;
-                
-                // Scroll al formulario
-                document.getElementById('formularioGasto').scrollIntoView({ behavior: 'smooth' });
-            }
-        }
-        
-        async function eliminarGasto(id) {
-            if (!confirm('¿Eliminar este gasto?')) return;
-            
-            try {
-                const respuesta = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        accion: 'eliminar',
-                        id: id
-                    })
-                });
-                
-                const resultado = await respuesta.json();
-                
-                if (resultado.error) {
-                    throw new Error(resultado.error);
-                }
-                
-                alert('Gasto eliminado');
-                cargarMes(mesActual);
-                
-            } catch (error) {
-                console.error('Error al eliminar:', error);
-                alert('Error: ' + error.message);
-            }
-        }
-        
-        function resetForm() {
-            document.getElementById('formGasto').reset();
-            editandoId = null;
-            configurarFechaInicio();
-            document.getElementById('camposCuotas').style.display = 'none';
-            document.getElementById('campoMesFin').style.display = 'none';
-        }
-    </script>
+        alert(`❌ Error de conexión:\n${error.message}\n\nRevisa la consola (F12) para más detalles`);
+    }
+}
+
+// Ejecutar test al cargar
+document.addEventListener('DOMContentLoaded', testAPI);
+</script>
 </body>
+
 </html>
